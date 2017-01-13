@@ -2,6 +2,7 @@
 
 rm(list=ls())
 
+install.packages('igraph')
 library(shiny)
 library(ggplot2)
 library(sp)  
