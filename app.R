@@ -1,6 +1,8 @@
 # shiny app for CO water rights explorer
 
 rm(list=ls())
+
+install.packages('shinythemes')
 library(shiny)
 library(ggplot2)
 library(shinythemes)
