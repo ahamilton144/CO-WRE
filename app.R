@@ -2,10 +2,8 @@
 
 rm(list=ls())
 
-install.packages('shinythemes')
 library(shiny)
 library(ggplot2)
-library(shinythemes)
 library(sp)  
 library(rgdal)
 library(leaflet)
@@ -35,7 +33,6 @@ div@data$inset <- sapply(1:nrow(div@data), function(x)
   paste('wdid =',div@data$wdid[x],'<br>Priorities =',div@data$pri[x],'<br>Appropriations =', div@data$approp[x]))
 
 ui <- fluidPage(
-  theme = shinytheme('spacelab'),
   titlePanel('CO Water Right Explorer'),
   sidebarLayout(
     sidebarPanel(  
