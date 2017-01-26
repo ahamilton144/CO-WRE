@@ -1,14 +1,13 @@
 # shiny app for CO water rights explorer
 
-rm(list=ls())
 library(shiny)
 library(ggplot2)
-library(devtools)
-devtools::install_github("rstudio/shinythemes",force=T)
+# library(devtools)
+# devtools::install_github("rstudio/shinythemes",force=T)
 #devtools::install_github("karthik/Rtools",force=T)
 #devtools::install_github("igraph/rigraph",force=T)
 #install.packages('igraph')
-library(shinythemes)
+#library(shinythemes)
 #library(igraph)
 
 library(sp)  
