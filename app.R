@@ -2,8 +2,8 @@
 
 library(shiny)
 library(ggplot2)
-library(devtools)
-devtools::install_github("rstudio/shinythemes",force=T)
+# library(devtools)
+# devtools::install_github("rstudio/shinythemes",force=T)
 #source('r_packages.R')
 # devtools::install_github("gaborcsardi/pkgconfig")
 # devtools::install_github("igraph/rigraph")
