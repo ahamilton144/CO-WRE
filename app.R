@@ -3,11 +3,14 @@
 rm(list=ls())
 library(shiny)
 library(ggplot2)
+library(devtools)
+devtools::install_github("rstudio/shinythemes",force=T)
+devtools::install_github("igraph/rigraph",force=T)
+library(igraph)
 library(shinythemes)
 library(sp)  
 library(rgdal)
 library(leaflet)
-#library(igraph)
 
 # get ditches, fields, downloaded from CDSS
 div <- readOGR('.','Div4_2010_Ditches_1402_sub')
