@@ -7,7 +7,7 @@ library(ggplot2)
 #devtools::install_github("karthik/Rtools",force=T)
 #devtools::install_github("igraph/rigraph",force=T)
 #install.packages('igraph')
-#library(shinythemes)
+library(shinythemes)
 #library(igraph)
 
 library(sp)  
