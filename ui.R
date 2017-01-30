@@ -1,5 +1,5 @@
 ui <- fluidPage(
-  theme = shinytheme('spacelab'),
+  #theme = shinytheme('spacelab'),
   titlePanel('CO Water Right Explorer'),
   sidebarLayout(
     sidebarPanel(
