@@ -56,7 +56,8 @@ ui <- fluidPage(
         tabPanel('Data Selection', id='tabIntro',
                  selectInput('WDID','Diversion WDID',wdidList),
                  selectInput('buysell','Buy or sell right',c('Buy','Sell')),
-                 numericInput('amt','Size of diversion (cfs)',value=5,min=0),
+                 numericInput('numRights','Number of potential rights',value=5,min=0,step=1),
+                 numericInput('amt','Size of diversion (cfs)',value=1.0,min=0, step=0.1),
                  selectInput('sec','Security of right',c('High','Medium','Low')),
                  textOutput('text1'),
                  textOutput('text2')
@@ -163,8 +164,8 @@ server <- function(input, output){
   })
   
   # Moniter selected all inputs & highlight output nodes
-  getOutputVerts <- function(buysell, amt, chosenVert, gpv){
-    # if no input entered, assume amt=5
+  getOutputVerts <- function(buysell, numRights, amt, chosenVert, gpv){
+    req(numRights)
     req(amt)
     if (buysell == 'Buy'){
       # get list of upstream nodes
@@ -173,24 +174,26 @@ server <- function(input, output){
       dum <- dum[!is.na(dum)]
       neiVert <- names(dum)
       neiVert <- match(neiVert, gpv$name)   
-      # limit to nodes with full diversions
       if (sum(gpv$atot[neiVert] > 0) > 0){
-        neiVert <- neiVert[gpv$atot[neiVert] > 0]
-        if (sum(gpv$atot[neiVert] == gpv$wtot[neiVert]) > 0){
-          neiVert <- neiVert[gpv$atot[neiVert] == gpv$wtot[neiVert]]
-          # get closest amt nodes
-          if(length(neiVert) > amt){
-            neiVert <- neiVert[1:amt]
+        neiVert <- neiVert[gpv$atot[neiVert] > 0]      
+        # # limit to nodes with full diversions
+        # if (sum(gpv$atot[neiVert] == gpv$wtot[neiVert]) > 0){
+        #   neiVert <- neiVert[gpv$atot[neiVert] == gpv$wtot[neiVert]]
+          # limit to nodes with total diversions > amt 
+          if (sum(gpv$wtot[neiVert]) > amt - 1e-13){
+            neiVert <- neiVert[gpv$wtot[neiVert] > amt - 1e-13]
+            # get closest numRights
+            if(length(neiVert) > numRights){
+              neiVert <- neiVert[1:numRights]
+            }
+            neiVert <- gpv[neiVert,]
+          }else{
+            neiVert <- numeric()
           }
-          neiVert <- gpv[neiVert,]
-        }else{
-          neiVert <- numeric()
-        }
-      }else{
-        neiVert <- numeric()
+        # }else{
+        #   neiVert <- numeric()
+        # }
       }
-      
-      
     }else{
       # get list of downstream nodes
       dum <- vertPaths[rownames(vertPaths)!=chosenVert$name, chosenVert$name]
@@ -198,27 +201,31 @@ server <- function(input, output){
       dum <- dum[!is.na(dum)]
       neiVert <- names(dum)
       neiVert <- match(neiVert, gpv$name)   
-      # limit to nodes with full diversions
       if (sum(gpv$atot[neiVert] > 0) > 0){
-        neiVert <- neiVert[gpv$atot[neiVert] > 0]
-        if (sum(gpv$atot[neiVert] == gpv$wtot[neiVert]) > 0){
-          neiVert <- neiVert[gpv$atot[neiVert] == gpv$wtot[neiVert]]
-          # get closest amt nodes
-          if(length(neiVert) > amt){
-            neiVert <- neiVert[1:amt]
+        neiVert <- neiVert[gpv$atot[neiVert] > 0]      
+        # # limit to nodes with full diversions
+        # if (sum(gpv$atot[neiVert] == gpv$wtot[neiVert]) > 0){
+        #   neiVert <- neiVert[gpv$atot[neiVert] == gpv$wtot[neiVert]]
+          # limit to nodes with total diversions > amt 
+          if (sum(gpv$wtot[neiVert]) > amt - 1e-13){
+            neiVert <- neiVert[gpv$wtot[neiVert] > amt - 1e-13]
+            # get closest numRights
+            if(length(neiVert) > numRights){
+              neiVert <- neiVert[1:numRights]
+            }
+            neiVert <- gpv[neiVert,]
+          }else{
+            neiVert <- numeric()
           }
-          neiVert <- gpv[neiVert,]
-        }else{
-          neiVert <- numeric()
-        }
-      }else{
-        neiVert <- numeric()
+        # }else{
+        #   neiVert <- numeric()
+        # }
       }
     }
     return (neiVert)
   }
   outputVerts <- reactive({
-    getOutputVerts(input$buysell, input$amt, chosenVert(), gpv())
+    getOutputVerts(input$buysell, input$numRights, as.numeric(input$amt), chosenVert(), gpv())
   })
   observe({
     # Add output nodes to map
