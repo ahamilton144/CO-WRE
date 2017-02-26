@@ -61,13 +61,13 @@ ui <- fluidPage(
                  selectInput('sec','Security of right',c('High','Medium','Low')),
                  textOutput('text1'),
                  textOutput('text2')
-        ),
-        tabPanel('Instructions', id='tabInstr',
-                 'write here too!')
+        )#,
+        # tabPanel('Instructions', id='tabInstr',
+        #          'write here too!')
       )
     ),
     mainPanel(
-      h4('Full stream network'),
+      # h4('Full stream network'),
       leafletOutput('map1')   # Output plot full dataset (only if data))
     )
   )
@@ -90,21 +90,14 @@ server <- function(input, output){
   output$map1 <- renderLeaflet({
     leaflet(stm_geo) %>%
       addTiles() %>%
-      addPolylines(color=~color,popup=~inset, group='Original') %>%
-      addCircles(data=div_geo, color='black',popup = ~inset, group='Original') %>%
-      addPolylines(data=gpe1, color=~color, popup=~inset, group='Average Flow') %>%
-      addCircles(data=gpv1, color=~color, popup=~inset, group='Average Flow') %>%
-      addPolylines(data=gpe2, color=~color, popup=~inset, group='Low Flow') %>%
-      addCircles(data=gpv2, color=~color, popup=~inset, group='Low Flow') %>%
-      addPolylines(data=gpe3, color=~color, popup=~inset, group='High Flow') %>%
-      addCircles(data=gpv3, color=~color, popup=~inset, group='High Flow') #%>%
-      # hideGroup('Average Flow') %>%
-      # hideGroup('Low Flow') %>%
-      # hideGroup('High Flow') #%>%
-      # addLayersControl(
-      #   baseGroups = c('simple','Original'),
-      #   options = layersControlOptions(collapsed=F)
-      # )
+      addPolylines(color=~color,popup=~inset, group='Original stream network') %>%
+      addCircles(data=div_geo, color='black',popup = ~inset, group='Original stream network') %>%
+      addPolylines(data=gpe1, color='grey', popup=~inset, group='Allocation network - Mean flow') %>%
+      addCircles(data=gpv1, color=~color, popup=~inset, group='Allocation network - Mean flow') %>%
+      addPolylines(data=gpe2, color='grey', popup=~inset, group='Allocation network - Low flow') %>%
+      addCircles(data=gpv2, color=~color, popup=~inset, group='Allocation network - Low flow') %>%
+      addPolylines(data=gpe3, color='grey', popup=~inset, group='Allocation network - High flow') %>%
+      addCircles(data=gpv3, color=~color, popup=~inset, group='Allocation network - High flow') #%>%
   })
   
   #dataset changes based on security selection
@@ -135,17 +128,17 @@ server <- function(input, output){
     getGpe(input$sec)
   })
   gShow <- reactive({
-    ifelse(input$sec == 'Medium', 'Average Flow', ifelse(input$sec == 'Low', 'High Flow', 'Low Flow'))
+    ifelse(input$sec == 'Medium', 'Allocation network - Mean flow', ifelse(input$sec == 'Low', 'Allocation network - High flow', 'Allocation network - Low flow'))
   })
   observe({
     # Switch stm/div network when chosen security level changes
     leafletProxy('map1') %>%
-      hideGroup('Average Flow') %>%
-      hideGroup('Low Flow') %>%
-      hideGroup('High Flow') %>%
+      hideGroup('Allocation network - Mean flow') %>%
+      hideGroup('Allocation network - Low flow') %>%
+      hideGroup('Allocation network - High flow') %>%
       showGroup(gShow()) %>%
       addLayersControl(
-        baseGroups = c(gShow(),'Original'),
+        baseGroups = c(gShow(),'Original stream network'),
         options = layersControlOptions(collapsed=F)
       )
       
