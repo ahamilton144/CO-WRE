@@ -55,7 +55,7 @@ ui <- fluidPage(
       tabsetPanel(
         tabPanel('Data Selection', id='tabIntro',
                  selectInput('WDID','Diversion WDID',wdidList),
-                 selectInput('buysell','Buy or sell right',c('Buy','Sell')),
+                 selectInput('buysell','Upstream or Downstream',c('Upstream'='Buy','Downstream'='Sell')),
                  numericInput('numRights','Number of potential rights',value=5,min=0,step=1),
                  numericInput('amt','Size of diversion (cfs)',value=1.0,min=0, step=0.1),
                  selectInput('sec','Security of right',c('High','Medium','Low')),
