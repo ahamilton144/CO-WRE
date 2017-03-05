@@ -27,12 +27,16 @@ load('stm_geo.rda')
 # load('gPlot_edge.rda')
 #load('m2.rda')
 load('vertPaths.rda')
+load('vertPathsFull.rda')
 load('gpv1.rda')
 load('gpv2.rda')
 load('gpv3.rda')
 load('gpe1.rda')
 load('gpe2.rda')
 load('gpe3.rda')
+load('g1.rda')
+load('g2.rda')
+load('g3.rda')
 
 # get list of wdids
 wdidList <- div@data$wdid
@@ -78,7 +82,8 @@ server <- function(input, output){
    
   # print results
   output$text1 <- renderText({
-    paste('Found', length(outputVerts()), 'potential trades.')
+    as.character(V(g())$q[1])
+    # paste('Found', length(outputVerts()), 'potential trades.')
   })
   output$text2 <- renderText({
     if(length(outputVerts()) > 0){
@@ -121,11 +126,24 @@ server <- function(input, output){
     }
     return(dum)
   }
+  getG <- function(sec){
+    if(sec == 'Medium'){
+      dum <- g1
+    }else if (sec == 'Low'){
+      dum <- g3
+    }else{
+      dum <- g2
+    }
+    return(dum)
+  }
   gpv <- reactive({
     getGpv(input$sec)
   })
   gpe <- reactive({
     getGpe(input$sec)
+  })
+  g <- reactive({
+    getG(input$sec)
   })
   gShow <- reactive({
     ifelse(input$sec == 'Medium', 'Allocation network - Mean flow', ifelse(input$sec == 'Low', 'Allocation network - High flow', 'Allocation network - Low flow'))
@@ -157,7 +175,7 @@ server <- function(input, output){
   })
   
   # Moniter selected all inputs & highlight output nodes
-  getOutputVerts <- function(buysell, numRights, amt, chosenVert, gpv){
+  getOutputVerts <- function(buysell, numRights, amt, chosenVert, gpv, g){
     req(numRights)
     req(amt)
     if (buysell == 'Buy'){
@@ -166,59 +184,116 @@ server <- function(input, output){
       dum <- dum[order(dum)]
       dum <- dum[!is.na(dum)]
       neiVert <- names(dum)
-      neiVert <- match(neiVert, gpv$name)   
-      if (sum(gpv$atot[neiVert] > 0) > 0){
-        neiVert <- neiVert[gpv$atot[neiVert] > 0]      
-        # # limit to nodes with full diversions
-        # if (sum(gpv$atot[neiVert] == gpv$wtot[neiVert]) > 0){
-        #   neiVert <- neiVert[gpv$atot[neiVert] == gpv$wtot[neiVert]]
-          # limit to nodes with total diversions > amt 
-          if (sum(gpv$wtot[neiVert]) > amt - 1e-13){
-            neiVert <- neiVert[gpv$wtot[neiVert] > amt - 1e-13]
-            # get closest numRights
-            if(length(neiVert) > numRights){
-              neiVert <- neiVert[1:numRights]
-            }
-            neiVert <- gpv[neiVert,]
-          }else{
-            neiVert <- numeric()
-          }
-        # }else{
-        #   neiVert <- numeric()
-        # }
-      }
+      neiVert <- match(neiVert, gpv$name)
     }else{
       # get list of downstream nodes
       dum <- vertPaths[rownames(vertPaths)!=chosenVert$name, chosenVert$name]
       dum <- dum[order(dum)]
       dum <- dum[!is.na(dum)]
       neiVert <- names(dum)
-      neiVert <- match(neiVert, gpv$name)   
-      if (sum(gpv$atot[neiVert] > 0) > 0){
-        neiVert <- neiVert[gpv$atot[neiVert] > 0]      
-        # # limit to nodes with full diversions
-        # if (sum(gpv$atot[neiVert] == gpv$wtot[neiVert]) > 0){
-        #   neiVert <- neiVert[gpv$atot[neiVert] == gpv$wtot[neiVert]]
-          # limit to nodes with total diversions > amt 
-          if (sum(gpv$wtot[neiVert]) > amt - 1e-13){
-            neiVert <- neiVert[gpv$wtot[neiVert] > amt - 1e-13]
-            # get closest numRights
-            if(length(neiVert) > numRights){
-              neiVert <- neiVert[1:numRights]
-            }
-            neiVert <- gpv[neiVert,]
-          }else{
-            neiVert <- numeric()
-          }
-        # }else{
-        #   neiVert <- numeric()
-        # }
-      }
+      neiVert <- match(neiVert, gpv$name)
     }
+    # decide whether each alloc meets reqs 
+    gpv$meetCrit <- NA
+    for (i in 1:length(gpv)){
+      # is alloc filled
+      t1 <- gpv[i,]$w[[1]] == gpv[i,]$a_full[[1]]
+      # is sum of filled allocs >= amt
+      t2 <- sum(t1 * gpv[i,]$w[[1]]) > amt - 1e-13
+      # does node have at least one alloc meeting reqs
+      gpv$meetCrit[i] <- t2 
+      
+    }
+    # limit to nodes meeting crits
+    if (sum(gpv[neiVert, ]$meetCrit) > 0){
+      neiVert <- neiVert[gpv[neiVert, ]$meetCrit]   
+      # neiVert <- gpv[neiVert,]$name
+    }else{
+      neiVert <- numeric()
+    }
+    
+    # check whether each trade allowed, and limit to numRights
+    if (length(neiVert) > 0){
+      feas <- rep(F, length(neiVert))
+      j <- 1
+      while ((j <= length(neiVert)) & (sum(feas) < numRights)){
+        feas[j] <- tryTrade_simple(chosenVert$name, gpv[neiVert[j],]$name, amt, g)
+        j <- j + 1
+      }
+      neiVert <- neiVert[feas]
+    }
+    if (length(neiVert) > 0){
+      neiVert <- gpv[neiVert,]
+    }else{
+      neiVert <- numeric()
+    }
+    
     return (neiVert)
   }
+  
+  tryTrade_simple <- function(nb, ns, amt, g){
+    # choose allocs for trade, based on meeting crits
+    full <- V(g)[ns]$w[[1]] == V(g)[ns]$a_full[[1]]
+    i <- length(full)
+    trd <- rep(0, length(full))
+    pri <- as.integer(V(g)[ns]$pri[[1]])
+    while((i > 0) & (sum(trd) < amt)){
+      if (full[order(pri)][i]){
+        dum <- pri[order(pri)][i]
+        trd[order(pri)[i]] <- min(V(g)[ns]$w[[1]][order(pri)[i]], amt - sum(trd))
+      }
+      i <- i - 1
+    }
+
+    # make test graph
+    gt <- g
+    
+    # make trade
+    for (i in 1:length(trd)){
+      if (trd[i] > 0){
+        V(gt)[nb]$a_full[[1]] <- c(V(gt)[nb]$a_full[[1]], trd[i])      
+        V(gt)[nb]$pri[[1]] <- c(V(gt)[nb]$pri[[1]], V(gt)[ns]$pri[[1]][i])
+        V(gt)[ns]$a_full[[1]][i] <- V(gt)[ns]$a_full[[1]][i] - trd[i]
+        # set withdrawals too, assuming trade ok
+        V(gt)[nb]$w[[1]] <- c(V(gt)[nb]$w[[1]], trd[i])
+        V(gt)[ns]$w[[1]][i] <- V(gt)[ns]$w[[1]][i] - trd[i]
+      }
+    }
+    V(gt)$atot <- sapply(V(gt)$a_full, sum)
+    V(gt)$wtot <- sapply(V(gt)$w, sum)
+    
+    # adjust flow q based on trades
+    for (i in 1:length(ns)){
+      # if buyer is US, flows between will be smaller by dw*con
+      if (!is.na(vertPathsFull[ns[i], nb[i]])){
+        bw <- get.shortest.paths(gt, from=nb[i], to=ns[i])$vpath[[1]]$name
+        # dont need to adjust flow at DS node
+        V(gt)[bw[1:(length(bw)-1)]]$q <- V(gt)[bw[1:(length(bw)-1)]]$q - V(gt)[bw[1]]$con * amt[i]
+      }else{  # if buyer is DS, flows b/w will be larger by dw*con
+        bw <- get.shortest.paths(gt, from=ns[i], to=nb[i])$vpath[[1]]$name
+        # dont need to adjust flow at DS node
+        V(gt)[bw[1:(length(bw)-1)]]$q <- V(gt)[bw[1:(length(bw)-1)]]$q + V(gt)[bw[1]]$con * amt[i]
+      }
+      # round
+      V(gt)$q[abs(V(gt)$q) < 1e-13] <- 0
+    }
+    
+    # get US-most (us), and DS-most (ds) buyer and seller, and all in-between nodes (bw)
+    us <- c(ns,nb)[which(colSums(!is.na(vertPathsFull[c(ns,nb),c(ns,nb)])) == length(c(ns,nb)))]
+    ds <- c(ns,nb)[which(rowSums(!is.na(vertPathsFull[c(ns,nb),c(ns,nb)])) == length(c(ns,nb)))]
+    bw <- get.shortest.paths(gt, from=us, to=ds)$vpath[[1]]$name
+    
+    # check whether trade ok
+    # check that all outflows positive
+    t1 <- sum(V(gt)$q < 0) == 0 
+    # check that all inflows sufficient for withdrawals
+    t2 <- sum(V(gt)$q - V(gt)$wtot * (1 - V(gt)$con) < -1e-13) == 0
+    # V(gt)$goodTrade <- (t1 & t2)
+    
+    return(t1 & t2)
+  }
   outputVerts <- reactive({
-    getOutputVerts(input$buysell, input$numRights, as.numeric(input$amt), chosenVert(), gpv())
+    getOutputVerts(input$buysell, input$numRights, as.numeric(input$amt), chosenVert(), gpv(), g())
   })
   observe({
     # Add output nodes to map
