@@ -2,12 +2,6 @@
 rm(list=ls())
 library(shiny)
 library(ggplot2)
-# library(devtools)
-# devtools::install_github("rstudio/shinythemes",force=T)
-#source('r_packages.R')
-# devtools::install_github("gaborcsardi/pkgconfig")
-# devtools::install_github("igraph/rigraph")
-#install.packages('igraph')
 library(shinythemes)
 library(igraph)
 
@@ -15,38 +9,36 @@ library(sp)
 library(rgdal)
 library(leaflet)
 
-# Load graphs from parent folder
-#load('gDiv.rda')
-#load('gStm.rda')
 load('div.rda')
 load('div_geo.rda')
 load('stm_geo.rda')
-#load('m1.rda')
-# load('gDivSub.rda')
-# load('gPlot_vert.rda')
-# load('gPlot_edge.rda')
-#load('m2.rda')
 load('vertPaths.rda')
 load('vertPathsFull.rda')
 load('gpv1.rda')
 load('gpv2.rda')
 load('gpv3.rda')
+load('gpv4.rda')
 load('gpe1.rda')
 load('gpe2.rda')
 load('gpe3.rda')
+load('gpe4.rda')
 load('g1.rda')
 load('g2.rda')
 load('g3.rda')
+load('g4.rda')
 
 g1$color <- as.character(g1$color)
 g2$color <- as.character(g2$color)
 g3$color <- as.character(g3$color)
+g4$color <- as.character(g4$color)
 gpe1$color <- as.character(gpe1$color)
 gpe2$color <- as.character(gpe2$color)
 gpe3$color <- as.character(gpe3$color)
+gpe4$color <- as.character(gpe4$color)
 gpv1$color <- as.character(gpv1$color)
 gpv2$color <- as.character(gpv2$color)
 gpv3$color <- as.character(gpv3$color)
+gpv4$color <- as.character(gpv4$color)
 
 
 # get list of wdids
@@ -64,7 +56,8 @@ ui <- navbarPage('CO Water Right Explorer',
                           sidebarLayout(
                             sidebarPanel(id='tab1Controls',
                                          selectInput('bWDID','Buyer WDID',wdidList),
-                                         selectInput('sec','Security of right',c('High','Medium','Low')),
+                                         selectInput('sec','Security of right',c('Highest (no failures last 30 years)'=4, 'High (expect failure 1 in 10 years)'=3,
+                                                                                 'Medium (expect failure 1 in 4 years)'=2,'Low (expect failure 1 in 2 years)'=1)),
                                          numericInput('amt','Size of diversion (cfs)',value=1.0,min=0, step=0.1), 
                                          selectInput('buysell','Loop upstream or downstream',c('Upstream'='Buy','Downstream'='Sell')),
                                          numericInput('numRights','Number of potential rights',value=5,min=0,step=1),
@@ -81,7 +74,7 @@ ui <- navbarPage('CO Water Right Explorer',
                           sidebarLayout(
                             sidebarPanel(id='tabIntro',
                                          textOutput('text2.1'),
-                                         textOutput('text2.2'),
+                                         # textOutput('text2.2'),
                                          selectInput('t2.numSales', 'Number of sales', 1:3),
                                          selectInput('t2.bWDID.1','Buyer 1 WDID',wdidList),
                                          uiOutput('t2.sWDID.list.1'),
@@ -125,42 +118,51 @@ server <- function(input, output){
       addTiles() %>%
       addPolylines(color=~color,popup=~inset, group='Original stream network') %>%
       addCircles(data=div_geo, color='black',popup = ~inset, group='Original stream network') %>%
-      addPolylines(data=gpe1, color='grey', popup=~inset, group='Allocation network - Mean flow') %>%
-      addCircles(data=gpv1, color=~color, popup=~inset, group='Allocation network - Mean flow') %>%
-      addPolylines(data=gpe2, color='grey', popup=~inset, group='Allocation network - Low flow') %>%
-      addCircles(data=gpv2, color=~color, popup=~inset, group='Allocation network - Low flow') %>%
-      addPolylines(data=gpe3, color='grey', popup=~inset, group='Allocation network - High flow') %>%
-      addCircles(data=gpv3, color=~color, popup=~inset, group='Allocation network - High flow') #%>%
+      addPolylines(data=gpe1, color='grey', popup=~inset, group='Allocation network - Low security') %>%
+      addCircles(data=gpv1, color=~color, popup=~inset, group='Allocation network - Low security') %>%
+      addPolylines(data=gpe2, color='grey', popup=~inset, group='Allocation network - Medium security') %>%
+      addCircles(data=gpv2, color=~color, popup=~inset, group='Allocation network - Medium security') %>%
+      addPolylines(data=gpe3, color='grey', popup=~inset, group='Allocation network - High security') %>%
+      addCircles(data=gpv3, color=~color, popup=~inset, group='Allocation network - High security') %>%
+      addPolylines(data=gpe4, color='grey', popup=~inset, group='Allocation network - Highest security') %>%
+      addCircles(data=gpv4, color=~color, popup=~inset, group='Allocation network - Highest security') #%>%
+    
   })
   
   #dataset changes based on security selection
   getGpv <- function(sec){
-    if(sec == 'Medium'){
+    if(sec == 1){
       dum <- gpv1
-    }else if (sec == 'Low'){
+    }else if (sec == 2){
+      dum <- gpv2
+    }else if (sec == 3){
       dum <- gpv3
     }else{
-      dum <- gpv2
+      dum <- gpv4
     }
     return(dum)
   }
   getGpe <- function(sec){
-    if(sec == 'Medium'){
+    if(sec == 1){
       dum <- gpe1
-    }else if (sec == 'Low'){
+    }else if (sec == 2){
+      dum <- gpe2
+    }else if (sec == 3){
       dum <- gpe3
     }else{
-      dum <- gpe2
+      dum <- gpe4
     }
     return(dum)
   }
   getG <- function(sec){
-    if(sec == 'Medium'){
+    if(sec == 1){
       dum <- g1
-    }else if (sec == 'Low'){
+    }else if (sec == 2){
+      dum <- g2
+    }else if (sec == 3){
       dum <- g3
     }else{
-      dum <- g2
+      dum <- g4
     }
     return(dum)
   }
@@ -174,14 +176,15 @@ server <- function(input, output){
     getG(input$sec)
   })
   gShow <- reactive({
-    ifelse(input$sec == 'Medium', 'Allocation network - Mean flow', ifelse(input$sec == 'Low', 'Allocation network - High flow', 'Allocation network - Low flow'))
+    ifelse(input$sec == 1, 'Allocation network - Low security', ifelse(input$sec == 2, 'Allocation network - Medium security', ifelse(input$sec == 3, 'Allocation network - High security', 'Allocation network - Highest security')))
   })
   observe({
     # Switch stm/div network when chosen security level changes
     leafletProxy('map1') %>%
-      hideGroup('Allocation network - Mean flow') %>%
-      hideGroup('Allocation network - Low flow') %>%
-      hideGroup('Allocation network - High flow') %>%
+      hideGroup('Allocation network - Low security') %>%
+      hideGroup('Allocation network - Medium security') %>%
+      hideGroup('Allocation network - High security') %>%
+      hideGroup('Allocation network - Highest security') %>%
       showGroup(gShow()) %>%
       addLayersControl(
         baseGroups = c(gShow(),'Original stream network'),
@@ -346,19 +349,35 @@ server <- function(input, output){
   output$text2.1 <- renderText({
     paste('Security of rights:', input$sec)
   })
-  output$text2.2 <- renderText({
-    as.character(nrow(t2.ns()))
-  })
+  # output$text2.2 <- renderText({
+  #   as.character(nrow(t2.ns()))
+  # })
   
   ### controls dependent on input
   # seller list of WDID does not contain selected buyer
   output$t2.sWDID.list.1 <- renderUI({
     nbdum <- gpv()[which((gpv()$wdid1 == input$t2.bWDID.1) | (gpv()$wdid2 == input$t2.bWDID.1) | (gpv()$wdid3 == input$t2.bWDID.1)),]
-    nbdum <- c(getOutputVerts('Buy', 1000, 0, nbdum, gpv(), g())$name, getOutputVerts('Sell', 1000, 0, nbdum, gpv(), g())$name)
-    wdidDum <- unlist(gpv()$wdid[gpv()$name %in% nbdum])
-    # dum <- unlist(gpv()$wdid[gpv()$wtot > 1e-13])
-    # wdidDum <- wdidList[wdidList %in% dum]
-    selectInput('t2.sWDID.1', 'Seller 1 WDID', wdidDum[wdidDum != input$t2.bWDID.1])
+    nbdum1 <- getOutputVerts('Buy', 1000, 0.01, nbdum, gpv(), g())
+    nbdum2 <- getOutputVerts('Sell', 1000, 0.01, nbdum, gpv(), g())
+    nbdum <- character()
+    if (!is.null(nrow(nbdum1))){
+      nbdum <- c(nbdum, nbdum1$name)
+    }
+    if (!is.null(nrow(nbdum2))){
+      nbdum <- c(nbdum, nbdum2$name)
+    }
+   if (length(nbdum) > 0){
+      wdidDum <- unlist(gpv()$wdid[gpv()$name %in% nbdum])
+      wdidDum <- wdidDum[wdidDum != input$t2.bWDID.1]
+     if (length(wdidDum) > 0){
+        selectInput('t2.sWDID.1', 'Seller 1 WDID', wdidDum)
+      }else{
+        selectInput('t2.sWDID.1', 'Seller 1 WDID', 'None')
+      }
+    }else{
+      selectInput('t2.sWDID.1', 'Seller 1 WDID', 'None')
+    }
+
   })
   # slider for amt to buy, between 0 and sum of filled allocs at buyer
   output$t2.sWDID.allocs.1 <- renderUI({
@@ -474,7 +493,9 @@ server <- function(input, output){
       addTiles() %>%
       addPolylines(data=gpe1, color='grey', popup=~inset, group='Allocation network - Mean flow') %>%
       addCircles(data=gpv1, color='white', popup=~inset, group='Allocation network - Mean flow') %>%
-      addMarkers(data=t2.nb(), popup=~inset, group='t2.nb') 
+      addMarkers(data=t2.nb(), popup=~inset, group='t2.nb') %>%
+      addMarkers(data=t2.ns(), popup=~inset, group='t2.ns')
+    
   })
   
   observe({
