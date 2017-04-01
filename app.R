@@ -52,8 +52,10 @@ nodeList <- nodeList[gpv2$atot[nodeList] > 0]
 wdidList <- wdidList[wdidList %in% c(gpv2$wdid1[nodeList], gpv2$wdid2[nodeList], gpv2$wdid3[nodeList])]
 
 
-ui <- navbarPage('CO Water Right Explorer',
-                 tabPanel('Explore allocations',
+ui <- navbarPage('CO Water Right Explorer', 
+                 tabPanel('Instructions', value='tab1',
+                          'Instructions coming soon...'),
+                 tabPanel('Explore allocations', value='tab2',
                           sidebarLayout(
                             sidebarPanel(id='tab1Controls',
                                          selectInput('bWDID','Buyer WDID',wdidList),
@@ -69,8 +71,8 @@ ui <- navbarPage('CO Water Right Explorer',
                               # h4('Full stream network'),
                               leafletOutput('map1', height='800px')   # Output plot full dataset (only if data))
                             )
-                          )
-                 )#,
+                          )#,
+                 ),
                  # tabPanel('Try simple trades',
                  #          sidebarLayout(
                  #            sidebarPanel(id='tabIntro',
@@ -94,7 +96,8 @@ ui <- navbarPage('CO Water Right Explorer',
                  #            )
                  #          )
                  # ),
-                 # tabPanel('Try complex trades')
+                 # 
+                selected='tab2'
 )
                  
 
