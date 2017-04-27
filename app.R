@@ -53,7 +53,9 @@ mapDone <- T
 
 ui <- navbarPage('CO Water Right Explorer', 
                  tabPanel('Instructions', value='tab1',
-                          'Instructions coming soon...'),
+                          'Instructions coming soon...', br(), br(),
+                          'Here is an example trade.', br(),
+                          img(src='trd-10pt-named.jpg')),
                  tabPanel('Explore allocations', value='tab2',
                           sidebarLayout(
                             sidebarPanel(id='tab1Controls',
@@ -128,10 +130,7 @@ server <- function(input, output){
       paste(outputVerts()$name)
     }
   })
-  output$text1.3 <- renderText({
-    req(mapDone)
-    'Loading...'
-  })
+  
   
   # Plot map
   output$map1 <- renderLeaflet({
