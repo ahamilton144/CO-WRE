@@ -140,11 +140,11 @@ server <- function(input, output){
       addPolygons(data=irr_geo, color='grey', popup=~inset, group='Original stream network') %>%
       addPolylines(color=~color,popup=~inset, group='Original stream network') %>%
       addCircles(data=div_geo, color='black',popup = ~inset, group='Original stream network') %>%
-      addPolylines(data=gpe2, color=~color, popup=~inset, group='Allocation network - Low security') %>%
+      addPolylines(data=gpe2, color='grey', popup=~inset, group='Allocation network - Low security') %>%
       addCircles(data=gpv2, color=~color, popup=~inset, group='Allocation network - Low security') %>%
-      addPolylines(data=gpe3, color=~color, popup=~inset, group='Allocation network - Medium security') %>%
+      addPolylines(data=gpe3, color='grey', popup=~inset, group='Allocation network - Medium security') %>%
       addCircles(data=gpv3, color=~color, popup=~inset, group='Allocation network - Medium security') %>%
-      addPolylines(data=gpe4, color=~color, popup=~inset, group='Allocation network - High security') %>%
+      addPolylines(data=gpe4, color='grey', popup=~inset, group='Allocation network - High security') %>%
       addCircles(data=gpv4, color=~color, popup=~inset, group='Allocation network - High security')
 
   })
