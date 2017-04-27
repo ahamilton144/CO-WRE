@@ -71,7 +71,9 @@ ui <- navbarPage('CO Water Right Explorer',
                                          selectInput('usds','Loop upstream or downstream',c('Upstream'='us','Downstream'='ds')),
                                          numericInput('numRights','Number of potential rights',value=5,min=0,step=1),
                                          textOutput('text1.1'),
-                                         textOutput('text1.2')
+                                         textOutput('text1.2'), br(),
+                                         'Please note that these results have not been validated and are not intended to replace a full modeling effort. ',
+                                         'Tool is simply an educational tool for understanding prior appropriation and the third-party effects of water right transfers.'
                                          # textOutput('text1.3')
                                          
                             ),
@@ -115,7 +117,9 @@ ui <- navbarPage('CO Water Right Explorer',
                                          uiOutput('t2.sWDID.amt.4'),
                                          uiOutput('t2.sWDID.nsalloc.5'),
                                          uiOutput('t2.sWDID.amt.5'),
-                                         actionButton('button2', 'Submit')
+                                         actionButton('button2', 'Submit'), br(),br(),
+                                         'Please note that these results have not been validated and are not intended to replace a full modeling effort. ',
+                                         'Tool is simply an educational tool for understanding prior appropriation and the third-party effects of water right transfers.'
 
                             ),
                             mainPanel(
