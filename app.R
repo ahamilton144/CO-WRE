@@ -52,13 +52,18 @@ wdidList <- wdidList[wdidList %in% c(gpv2$wdid1[nodeList], gpv2$wdid2[nodeList],
 mapDone <- T
 
 ui <- navbarPage('CO Water Right Explorer', 
-                 tabPanel('Instructions', value='tab1',
-                          'Instructions coming soon...', br(), br(),
-                          'Here is an example trade.', br(),
-                          img(src='trd-10pt-named.jpg')),
-                 tabPanel('Explore allocations', value='tab2',
+                 # tabPanel('Instructions', value='tab1',
+                 #          'Wecome to the Colorado Water Right Explorer. This tool will allow you to explore water rights and water ', 
+                 #          'availability within the Upper Gunnison River Basin.'),
+                 #          # img(src='trd-10pt-named.jpg')),
+                 tabPanel('Explore water rights', value='tab2',
                           sidebarLayout(
                             sidebarPanel(id='tab1Controls',
+                                         'Welcome to the Colorado Water Right Explorer. This tool will allow you to explore water availability, water rights, ', 
+                                         'and potential transfers within the Upper Gunnison River Basin. ',br(),br(), 
+                                         'Choose a buyer and parameters for the transfer in order to find potential sellers. ',
+                                         'Buyer marked with up-arrow and potential sellers with down-arrows. ',
+                                         'Click on markers or circles for information on water rights, or on lines for information on stream flow', br(),br(),
                                          selectInput('bWDID','Buyer WDID',wdidList),
                                          selectInput('sec','Security of right',c('High (drought of record, 29 years)'='sec3', 'Medium (5 year return low flow)'='sec2',
                                                                                  'Low (median flow)'='sec1')),
@@ -67,6 +72,8 @@ ui <- navbarPage('CO Water Right Explorer',
                                          numericInput('numRights','Number of potential rights',value=5,min=0,step=1),
                                          textOutput('text1.1'),
                                          textOutput('text1.2')
+                                         # textOutput('text1.3')
+                                         
                             ),
                             mainPanel(
                               # textOutput('text1.3'),
@@ -74,11 +81,18 @@ ui <- navbarPage('CO Water Right Explorer',
                             )
                           )
                  ),
-                 tabPanel('Test trades', value='tab3',
+                 tabPanel('Test right transfers', value='tab3',
                           sidebarLayout(
                             sidebarPanel(id='tabIntro',
-                                         textOutput('text2.1'),
-                                         textOutput('text2.2'),
+                                         'This part of the tool allows you to test potential multi-party water right transfers. ',
+                                         'After finding a set of potential transfers (buyers, sellers, allocations, and amounts) ',
+                                         'using the previous tab, enter them here and hit submit to calculate the effects of the trade ',
+                                         'on buyers, sellers, third-parties, and instream flows.', br(), br(),
+                                         'Be sure to choose the desired security level on the last tab, as this will carry over. ',
+                                         'Choose the selections on this page in the order that they appear. ',
+                                         'Hit submit when ready and please be patient, as this calculation will take a few minutes.', br(), br(),
+                                         textOutput('text2.1'), br(), 
+                                         # textOutput('text2.2'),
                                          selectInput('t2.numSales', 'Number of sales', 1:5),
                                          selectInput('t2.bWDID.1','Buyer 1 WDID',wdidList),
                                          uiOutput('t2.sWDID.list.1'),
@@ -130,6 +144,9 @@ server <- function(input, output){
       paste(outputVerts()$name)
     }
   })
+  # output$text1.3 <- renderText({
+  #   input$map1_groups[1]
+  # })
   
   
   # Plot map
@@ -138,16 +155,29 @@ server <- function(input, output){
       addProviderTiles(providers$Esri.WorldShadedRelief) %>%
       addTiles(options=providerTileOptions(opacity = 0.7)) %>%
       addPolygons(data=irr_geo, color='grey', popup=~inset, group='Original stream network') %>%
-      addPolylines(color=~color,popup=~inset, group='Original stream network') %>%
+      addPolylines(data=stm_geo[stm_geo$color == 'orange', ], color='orange',popup=~inset, opacity=1, weight=3, group='Original stream network') %>%
+      addPolylines(data=stm_geo[stm_geo$color == 'green', ], color='green',popup=~inset, opacity=1, weight=3, group='Original stream network') %>%
+      addPolylines(data=stm_geo[stm_geo$color == 'blue', ], color='blue',popup=~inset, opacity=1, weight=3, group='Original stream network') %>%
       addCircles(data=div_geo, color='black',popup = ~inset, group='Original stream network') %>%
-      addPolylines(data=gpe2, color='grey', popup=~inset, group='Allocation network - Low security') %>%
-      addCircles(data=gpv2, color=~color, popup=~inset, group='Allocation network - Low security') %>%
-      addPolylines(data=gpe3, color='grey', popup=~inset, group='Allocation network - Medium security') %>%
-      addCircles(data=gpv3, color=~color, popup=~inset, group='Allocation network - Medium security') %>%
-      addPolylines(data=gpe4, color='grey', popup=~inset, group='Allocation network - High security') %>%
-      addCircles(data=gpv4, color=~color, popup=~inset, group='Allocation network - High security')
-
+      addPolylines(data=gpe2, color='grey', popup=~inset, weight=3, opacity=1, group='Allocation network - Low security') %>%
+      addCircles(data=gpv2[gpv2$atot > 0,], color=~color, popup=~inset, group='Allocation network - Low security') %>%
+      addPolylines(data=gpe3, color='grey', popup=~inset, weight=3, opacity=1, group='Allocation network - Medium security') %>%
+      addCircles(data=gpv3[gpv3$atot > 0,], color=~color, popup=~inset, group='Allocation network - Medium security') %>%
+      addPolylines(data=gpe4, color='grey', popup=~inset, weight=3, opacity=1, group='Allocation network - High security') %>%
+      addCircles(data=gpv4[gpv4$atot > 0,], color=~color, popup=~inset, group='Allocation network - High security') 
   })
+  
+  # add legend dependent on group
+  observeEvent(input$map1_groups[1],{
+    map1 <- leafletProxy('map1') %>% clearControls()
+    if (input$map1_groups[1] == 'Original stream network'){
+      map1 <- map1 %>% addLegend("topright", colors=c('blue','green','orange'), labels=c('> 200 cfs','> 10 cfs','< 10 cfs'), title = 'Mean June flow rate')
+    }else{
+      map1 <- map1 %>% addLegend("topright", colors=c('blue','orange','red'), labels=c('Full withdrawal','Partial withdrawal','No withdrawal'), title = 'Right fulfillment')
+    }
+  })
+  
+  
   
   #dataset changes based on security selection
   getGpv <- function(sec){
@@ -218,11 +248,18 @@ server <- function(input, output){
     gpv()[which((gpv()$wdid1 == input$bWDID) | (gpv()$wdid2 == input$bWDID) | (gpv()$wdid3 == input$bWDID)),]
     
   })
+  icons_nb <- awesomeIcons(
+    icon = 'arrow-up',
+    iconColor = 'black',
+    # library = 'ion',
+    markerColor = 'lightgray'
+  )
   observe({
     # Add marker at chosen node
     leafletProxy('map1') %>%
       clearGroup('nb') %>%
-      addMarkers(data=nb(), popup=~inset, group='nb')
+      # addMarkers(data=nb(), popup=~inset, group='nb')
+      addAwesomeMarkers(nb()$x, nb()$y, icon=icons_nb, popup=nb()$inset, group='nb')
   })
   
   # Moniter selected all inputs & highlight output nodes
@@ -346,13 +383,21 @@ server <- function(input, output){
   outputVerts <- reactive({
     getOutputVerts(input$usds, input$numRights, as.numeric(input$amt), nb(), gpv(), g())
   })
+  
+  icons_outputVerts <- awesomeIcons(
+    icon = 'arrow-down',
+    iconColor = 'black',
+    # library = 'ion',
+    markerColor = 'lightgray'
+  )
   observe({
     # Add output nodes to map
     leafletProxy('map1') %>%
       clearGroup('outputVerts') 
     if(length(outputVerts()) > 0){
       leafletProxy('map1') %>%
-        addMarkers(data=outputVerts(), popup=~inset, group='outputVerts')
+        # addMarkers(data=outputVerts(), popup=~inset, group='outputVerts')
+        addAwesomeMarkers(outputVerts()$x, outputVerts()$y, icon=icons_outputVerts, popup=outputVerts()$inset, group='outputVerts')
     }
   })
   
@@ -375,9 +420,9 @@ server <- function(input, output){
     }
     
   })
-  output$text2.2 <- renderText({
-    t2.alloc()
-  })
+  # output$text2.2 <- renderText({
+  #   t2.alloc()
+  # })
   
   
   ### controls dependent on input
@@ -872,8 +917,8 @@ server <- function(input, output){
     leaflet(stm_geo) %>%
       addProviderTiles(providers$Esri.WorldShadedRelief) %>%
       addTiles(options=providerTileOptions(opacity = 0.7)) %>%
-      addPolylines(data=gpe(), color='grey', popup=~inset, group='Allocation network - Mean flow') %>%
-      addCircles(data=gpv(), color='white', popup=~inset, group='Allocation network - Mean flow')
+      addPolylines(data=gpe(), color='grey', weight=3, opacity=1, popup=~inset, group='Allocation network - Mean flow') #%>%
+      # addCircles(data=gpv()[gpv()$atot > 0,], color='grey', popup=~inset, group='Allocation network - Mean flow')
   })
 
   observeEvent(input$button2, {
@@ -1097,14 +1142,21 @@ server <- function(input, output){
     gpvZoom <- gpvt[gpvt$color != 'white', ]
     leafletProxy('map2') %>%
       clearGroup('trade') %>%
-      # addPolylines(data=gpet, color=~color, popup=~inset, opacity=1, group='trade') %>%
-      addCircles(data=gpvt[gpvt$color != 'white',], color=~color, popup=~inset, radius=~sqrt(abs(dwtot) * 500)*10, group='trade') %>%
-      addPolylines(data=gpet[gpet$color != 'grey',], color=~color, popup=~inset, opacity=1, group='trade') %>%
-      addMarkers(data=t2.nb(), popup=~inset, group='trade') %>%
-      addMarkers(data=t2.ns(), popup=~inset, group='trade') %>%
+      addCircles(data=gpvt[gpvt$color == 'grey',], color=~color, popup=~inset, group='trade') %>%
+      addCircles(data=gpvt[gpvt$color != 'grey',], color=~color, popup=~inset, radius=~sqrt(abs(dwtot) * 500)*10, group='trade') %>%
+      addPolylines(data=gpet[gpet$color != 'grey',], color=~color, popup=~inset, opacity=1, weight=3, group='trade') %>%
+      addAwesomeMarkers(t2.nb()$x, t2.nb()$y, icon=icons_nb, popup=t2.nb()$inset,group='nb') %>%
+      addAwesomeMarkers(t2.ns()$x, t2.ns()$y, icon=icons_outputVerts, popup=t2.ns()$inset,group='ns') %>%
+      # addMarkers(data=t2.nb(), popup=~inset, group='trade') %>%
+      # addMarkers(data=t2.ns(), popup=~inset, group='trade') %>%
       fitBounds(min(gpvZoom@bbox[1,1], gpeZoom@bbox[1,1]), min(gpvZoom@bbox[2,1], gpeZoom@bbox[2,1]),
-                max(gpvZoom@bbox[1,2], gpeZoom@bbox[1,2]), max(gpvZoom@bbox[2,2], gpeZoom@bbox[2,2]))
-    
+                max(gpvZoom@bbox[1,2], gpeZoom@bbox[1,2]), max(gpvZoom@bbox[2,2], gpeZoom@bbox[2,2])) %>%
+      addLegend("topright", colors=c('green','red','grey'), 
+                labels=c('Increase','Decrease','No change'), 
+                title = 'Change in withdrawals') %>%
+      addLegend("topright", colors=c('green','red','blue','orange','grey'), 
+                labels=c('Increase - ISF','Decrease - ISF','Increase - no ISF','Decrease - no ISF','No change'), 
+                title = 'Change in stream flow')
   })
   
   setGraphPlotParms_dTrade <- function(gNew, gOld, amt.t, t2.nb.t, t2.ns.t){
@@ -1144,12 +1196,12 @@ server <- function(input, output){
     E(gNew)$inset <- paste('dq =', as.character(round(E(gNew)$dq, 2)), '<br>dI =', as.character(round(E(gNew)$dI,2)))
     
     # color vertices
-    V(gNew)$color <- ifelse(V(gNew)$dwtot == 0, 'white', 
+    V(gNew)$color <- ifelse(V(gNew)$dwtot == 0, 'grey', 
                             ifelse(V(gNew)$dwtot > 0, 'green', 'red'))
-    V(gNew)$color[!is.na(V(gNew)$t1) & V(gNew)$dwtot > 0] <- 'darkblue'
-    V(gNew)$color[!is.na(V(gNew)$t2) & V(gNew)$dwtot < 0] <- 'darkorange'
-    V(gNew)$color[!is.na(V(gNew)$t1) & V(gNew)$dwtot == 0] <- 'black'
-    V(gNew)$color[!is.na(V(gNew)$t2) & V(gNew)$dwtot == 0] <- 'black'
+    # V(gNew)$color[!is.na(V(gNew)$t1) & V(gNew)$dwtot > 0] <- 'darkblue'
+    # V(gNew)$color[!is.na(V(gNew)$t2) & V(gNew)$dwtot < 0] <- 'darkorange'
+    # V(gNew)$color[!is.na(V(gNew)$t1) & V(gNew)$dwtot == 0] <- 'black'
+    # V(gNew)$color[!is.na(V(gNew)$t2) & V(gNew)$dwtot == 0] <- 'black'
     E(gNew)$color <- ifelse(E(gNew)$dq == 0, 'grey', 
                             ifelse((is.na(E(gNew)$dI) & (E(gNew)$dq > 0)), 'blue',
                                    ifelse((is.na(E(gNew)$dI) & (E(gNew)$dq < 0)), 'orange',   
